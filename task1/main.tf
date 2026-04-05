@@ -21,11 +21,24 @@ terraform {
   }
 }
 
+# Провайдер тепер знає про ключі для Spaces
 provider "digitalocean" {
-  token = var.do_token
+  token             = var.do_token
+  spaces_access_id  = var.spaces_access_id
+  spaces_secret_key = var.spaces_secret_key
 }
 
 variable "do_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "spaces_access_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "spaces_secret_key" {
   type      = string
   sensitive = true
 }
