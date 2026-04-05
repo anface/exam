@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
+      # Ключі для бакета
       AWS_ACCESS_KEY_ID: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
+      # Токен для DigitalOcean API
       TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
 
     steps:
@@ -21,6 +23,8 @@ jobs:
 
       - name: "Setup Terraform"
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0" # Актуальна стабільна версія
 
       - name: "Terraform Init"
         run: |
@@ -30,8 +34,12 @@ jobs:
             -backend-config="secret_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
 
       - name: "Terraform Plan"
-        run: cd task1 && terraform plan
+        run: |
+          cd task1
+          terraform plan -no-color
 
       - name: "Terraform Apply"
         if: github.ref == 'refs/heads/main'
-        run: cd task1 && terraform apply -auto-approve
+        run: |
+          cd task1
+          terraform apply -auto-approve
