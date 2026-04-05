@@ -1,0 +1,34 @@
+name: "Terraform Infrastructure"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      DIGITALOCEAN_TOKEN: ${{ secrets.DO_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: |
+          cd task1
+          terraform init -backend-config="access_key=${{ env.AWS_ACCESS_KEY_ID }}" -backend-config="secret_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
+
+      - name: Terraform Plan (Перевірка)
+        run: cd task1 && terraform plan
+
+      - name: Terraform Apply (Реальне розгортання)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: cd task1 && terraform apply -auto-approve
