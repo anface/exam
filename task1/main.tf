@@ -6,7 +6,7 @@ terraform {
   }
   # Зберігання стану в твоєму бакеті
   backend "s3" {
-    endpoint                    = "fra1.digitaloceanspaces.com"
+    endpoint = "https://fra1.digitaloceanspaces.com"
     region                      = "us-east-1" # Стандарт для S3-сумісних сховищ
     bucket                      = "minchuk-tfstate"
     key                         = "terraform.tfstate"
