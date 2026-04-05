@@ -1,15 +1,23 @@
 terraform {
+  required_version = ">= 1.5.0"
+
   required_providers {
     digitalocean = {
-      source = "digitalocean/digitalocean"
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.0"
     }
   }
 
   backend "s3" {
-    endpoint                    = "https://fra1.digitaloceanspaces.com"
-    region                      = "us-east-1"
-    bucket                      = "minchuk-tfstate"
-    key                         = "terraform.tfstate"
+    # Для 2026 року використовуємо блок endpoints для S3-сумісних сховищ
+    endpoints = {
+      s3 = "https://fra1.digitaloceanspaces.com"
+    }
+    bucket = "minchuk-tfstate"
+    key    = "terraform.tfstate"
+    region = "us-east-1" 
+    
+    # Критичні налаштування для DigitalOcean Spaces
     skip_credentials_validation = true
     skip_metadata_api_check     = true
     skip_requesting_account_id  = true
@@ -22,16 +30,28 @@ provider "digitalocean" {
   token = var.do_token
 }
 
-variable "do_token" {}
+variable "do_token" {
+  type      = string
+  sensitive = true
+}
 
-# VPC
+# 1. Віртуальна приватна хмара (VPC)
 resource "digitalocean_vpc" "minchuk_vpc" {
   name     = "minchuk-vpc"
   region   = "fra1"
   ip_range = "10.10.10.0/24"
 }
 
-# Firewall
+# 2. Віртуальна машина (Droplet)
+resource "digitalocean_droplet" "minchuk_node" {
+  name     = "minchuk-node"
+  region   = "fra1"
+  size     = "s-2vcpu-4gb" # Оптимально для Minikube у 2026
+  image    = "ubuntu-24-04-x64"
+  vpc_uuid = digitalocean_vpc.minchuk_vpc.id
+}
+
+# 3. Налаштування фаєрволу
 resource "digitalocean_firewall" "minchuk_fw" {
   name        = "minchuk-firewall"
   droplet_ids = [digitalocean_droplet.minchuk_node.id]
@@ -67,16 +87,7 @@ resource "digitalocean_firewall" "minchuk_fw" {
   }
 }
 
-# VM (Droplet)
-resource "digitalocean_droplet" "minchuk_node" {
-  name     = "minchuk-node"
-  region   = "fra1"
-  size     = "s-2vcpu-4gb"
-  image    = "ubuntu-24-04-x64"
-  vpc_uuid = digitalocean_vpc.minchuk_vpc.id
-}
-
-# Object Storage (Bucket)
+# 4. Сховище для об'єктів (Бакет)
 resource "digitalocean_spaces_bucket" "minchuk_bucket" {
   name   = "minchuk-bucket"
   region = "fra1"
