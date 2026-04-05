@@ -11,10 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      # Це ключі для авторизації в S3 (Spaces)
       AWS_ACCESS_KEY_ID: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
-      # Це токен для створення ресурсів DO
       TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
 
     steps:
@@ -29,10 +27,7 @@ jobs:
           cd task1
           terraform init \
             -backend-config="access_key=${{ env.AWS_ACCESS_KEY_ID }}" \
-            -backend-config="secret_key=${{ env.AWS_SECRET_ACCESS_KEY }}" \
-            -backend-config="endpoints=s3=https://fra1.digitaloceanspaces.com" \
-            -backend-config="region=us-east-1" \
-            -backend-config="bucket=minchuk-tfstate"
+            -backend-config="secret_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
 
       - name: "Terraform Plan"
         run: cd task1 && terraform plan
