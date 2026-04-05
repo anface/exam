@@ -8,27 +8,34 @@ on:
 
 jobs:
   terraform:
+    name: "Terraform Build"
     runs-on: ubuntu-latest
-    env:
-      DIGITALOCEAN_TOKEN: ${{ secrets.DO_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
     
+    env:
+      TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+
     steps:
-      - name: Checkout
+      - name: "Checkout Code"
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: "Setup Terraform"
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
+      - name: "Terraform Init"
         run: |
           cd task1
-          terraform init -backend-config="access_key=${{ env.AWS_ACCESS_KEY_ID }}" -backend-config="secret_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
+          terraform init \
+            -backend-config="access_key=${{ secrets.DIGITALOCEAN_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.DIGITALOCEAN_SECRET_KEY }}"
 
-      - name: Terraform Plan (Перевірка)
-        run: cd task1 && terraform plan
+      - name: "Terraform Plan (Перевірка)"
+        id: plan
+        run: |
+          cd task1
+          terraform plan -no-color
 
-      - name: Terraform Apply (Реальне розгортання)
+      - name: "Terraform Apply (Реальне розгортання)"
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: cd task1 && terraform apply -auto-approve
+        run: |
+          cd task1
+          terraform apply -auto-approve
