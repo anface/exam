@@ -9,15 +9,10 @@ terraform {
   }
 
   backend "s3" {
-    # Для 2026 року використовуємо блок endpoints для S3-сумісних сховищ
-    endpoints = {
-      s3 = "https://fra1.digitaloceanspaces.com"
-    }
-    bucket = "minchuk-tfstate"
-    key    = "terraform.tfstate"
-    region = "us-east-1" 
-    
-    # Критичні налаштування для DigitalOcean Spaces
+    endpoint                    = "https://fra1.digitaloceanspaces.com"
+    region                      = "us-east-1"
+    bucket                      = "minchuk-tfstate"
+    key                         = "terraform.tfstate"
     skip_credentials_validation = true
     skip_metadata_api_check     = true
     skip_requesting_account_id  = true
@@ -46,7 +41,7 @@ resource "digitalocean_vpc" "minchuk_vpc" {
 resource "digitalocean_droplet" "minchuk_node" {
   name     = "minchuk-node"
   region   = "fra1"
-  size     = "s-2vcpu-4gb" # Оптимально для Minikube у 2026
+  size     = "s-2vcpu-4gb"
   image    = "ubuntu-24-04-x64"
   vpc_uuid = digitalocean_vpc.minchuk_vpc.id
 }
