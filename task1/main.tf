@@ -27,7 +27,6 @@ provider "digitalocean" {
   spaces_secret_key = var.spaces_secret_key
 }
 
-# Блок змінних (виправлений синтаксис)
 variable "do_token" {
   type      = string
   sensitive = true
@@ -47,30 +46,27 @@ variable "public_key" {
   type = string
 }
 
-# Створення SSH-ключа в DigitalOcean
-resource "digitalocean_ssh_key" "roman_key" {
-  name       = "key-v4-final" 
+# Новий унікальний ресурс ключа
+resource "digitalocean_ssh_key" "roman_key_final" {
+  name       = "ultimate-final-key-v6" 
   public_key = var.public_key
 }
 
-# Мережа
 resource "digitalocean_vpc" "minchuk_vpc" {
   name     = "minchuk-vpc"
   region   = "fra1"
   ip_range = "10.10.10.0/24"
 }
 
-# Сервер (Droplet)
 resource "digitalocean_droplet" "minchuk_node" {
-  name     = "minchuk-node"
+  name     = "minchuk-final-node"
   region   = "fra1"
   size     = "s-2vcpu-4gb"
   image    = "ubuntu-24-04-x64"
   vpc_uuid = digitalocean_vpc.minchuk_vpc.id
-  ssh_keys = [digitalocean_ssh_key.roman_key.id]
+  ssh_keys = [digitalocean_ssh_key.roman_key_final.id]
 }
 
-# Налаштування фаєрволу
 resource "digitalocean_firewall" "minchuk_fw" {
   name        = "minchuk-firewall"
   droplet_ids = [digitalocean_droplet.minchuk_node.id]
@@ -106,7 +102,6 @@ resource "digitalocean_firewall" "minchuk_fw" {
   }
 }
 
-# Бакет Spaces
 resource "digitalocean_spaces_bucket" "minchuk_bucket" {
   name   = "minchuk-bucket"
   region = "fra1"
