@@ -43,7 +43,7 @@ jobs:
           directory: task2
           inventory: |
             [nodes]
-            minchuk-node ansible_host=134.122.78.232 ansible_user=ubuntu
+            minchuk-node ansible_host=134.122.78.232 ansible_user=root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           options: |
             --extra-vars "ansible_ssh_extra_args='-o StrictHostKeyChecking=no'"
