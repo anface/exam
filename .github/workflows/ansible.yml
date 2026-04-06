@@ -1,0 +1,25 @@
+name: "Ansible Deployment (Task 2)"
+
+on:
+  workflow_run:
+    workflows: ["Terraform Infrastructure"]
+    types:
+      - completed
+
+jobs:
+  ansible:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "Setup SSH Key"
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > task2/id_rsa
+          chmod 600 task2/id_rsa
+
+      - name: "Run Ansible Playbook"
+        run: |
+          cd task2
+          ansible-playbook -i inventory.ini setup.yml
