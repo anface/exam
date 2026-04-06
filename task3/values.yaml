@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: anface/exam
+  repository: anface/exam-app  # Назва образу на Docker Hub
   pullPolicy: Always
   tag: "develop"
 
@@ -9,4 +9,4 @@ service:
   type: NodePort
   port: 80
   targetPort: 8080
-  nodePort: 8002 # Дефолтний порт для dev
+  nodePort: 8002
