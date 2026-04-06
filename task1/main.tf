@@ -27,33 +27,50 @@ provider "digitalocean" {
   spaces_secret_key = var.spaces_secret_key
 }
 
-variable "do_token" { type = string; sensitive = true }
-variable "spaces_access_id" { type = string; sensitive = true }
-variable "spaces_secret_key" { type = string; sensitive = true }
-variable "public_key" { type = string }
+# Блок змінних (виправлений синтаксис)
+variable "do_token" {
+  type      = string
+  sensitive = true
+}
 
-# Змінили назву ключа, щоб DO створив новий об'єкт
+variable "spaces_access_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "spaces_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "public_key" {
+  type = string
+}
+
+# Створення SSH-ключа в DigitalOcean
 resource "digitalocean_ssh_key" "roman_key" {
   name       = "key-v4-final" 
   public_key = var.public_key
 }
 
+# Мережа
 resource "digitalocean_vpc" "minchuk_vpc" {
   name     = "minchuk-vpc"
   region   = "fra1"
   ip_range = "10.10.10.0/24"
 }
 
+# Сервер (Droplet)
 resource "digitalocean_droplet" "minchuk_node" {
   name     = "minchuk-node"
   region   = "fra1"
   size     = "s-2vcpu-4gb"
   image    = "ubuntu-24-04-x64"
   vpc_uuid = digitalocean_vpc.minchuk_vpc.id
-  # Прив'язуємо новий ключ
   ssh_keys = [digitalocean_ssh_key.roman_key.id]
 }
 
+# Налаштування фаєрволу
 resource "digitalocean_firewall" "minchuk_fw" {
   name        = "minchuk-firewall"
   droplet_ids = [digitalocean_droplet.minchuk_node.id]
@@ -89,6 +106,7 @@ resource "digitalocean_firewall" "minchuk_fw" {
   }
 }
 
+# Бакет Spaces
 resource "digitalocean_spaces_bucket" "minchuk_bucket" {
   name   = "minchuk-bucket"
   region = "fra1"
