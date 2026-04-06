@@ -8,7 +8,6 @@ terraform {
     }
   }
 
-  # Зберігання стану в хмарі DigitalOcean Spaces
   backend "s3" {
     endpoint                    = "https://fra1.digitaloceanspaces.com"
     region                      = "us-east-1"
@@ -22,57 +21,39 @@ terraform {
   }
 }
 
-# Налаштування провайдера з ключами для Spaces
 provider "digitalocean" {
   token             = var.do_token
   spaces_access_id  = var.spaces_access_id
   spaces_secret_key = var.spaces_secret_key
 }
 
-# Змінні (значення беруться з GitHub Secrets)
-variable "do_token" {
-  type      = string
-  sensitive = true
-}
+variable "do_token" { type = string; sensitive = true }
+variable "spaces_access_id" { type = string; sensitive = true }
+variable "spaces_secret_key" { type = string; sensitive = true }
+variable "public_key" { type = string }
 
-variable "spaces_access_id" {
-  type      = string
-  sensitive = true
-}
-
-variable "spaces_secret_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "public_key" {
-  type = string
-}
-
-# 1. Додавання SSH-ключа в акаунт DigitalOcean
+# Змінили назву ключа, щоб DO створив новий об'єкт
 resource "digitalocean_ssh_key" "roman_key" {
-  name       = "roman-minchuk-key"
+  name       = "key-v4-final" 
   public_key = var.public_key
 }
 
-# 2. Віртуальна приватна хмара (VPC)
 resource "digitalocean_vpc" "minchuk_vpc" {
   name     = "minchuk-vpc"
   region   = "fra1"
   ip_range = "10.10.10.0/24"
 }
 
-# 3. Сервер (Droplet) з прив'язаним SSH-ключем
 resource "digitalocean_droplet" "minchuk_node" {
   name     = "minchuk-node"
   region   = "fra1"
-  size     = "s-2vcpu-4gb" # 4GB RAM мінімум для Minikube
+  size     = "s-2vcpu-4gb"
   image    = "ubuntu-24-04-x64"
   vpc_uuid = digitalocean_vpc.minchuk_vpc.id
+  # Прив'язуємо новий ключ
   ssh_keys = [digitalocean_ssh_key.roman_key.id]
 }
 
-# 4. Фаєрвол (Дозволяємо SSH та порти для K8s/App)
 resource "digitalocean_firewall" "minchuk_fw" {
   name        = "minchuk-firewall"
   droplet_ids = [digitalocean_droplet.minchuk_node.id]
@@ -97,7 +78,7 @@ resource "digitalocean_firewall" "minchuk_fw" {
 
   inbound_rule {
     protocol         = "tcp"
-    port_range       = "8000-8003" # Для твого майбутнього застосунку
+    port_range       = "8000-8003"
     source_addresses = ["0.0.0.0/0"]
   }
 
@@ -108,7 +89,6 @@ resource "digitalocean_firewall" "minchuk_fw" {
   }
 }
 
-# 5. Бакет для зберігання статики або логів (вимога завдання)
 resource "digitalocean_spaces_bucket" "minchuk_bucket" {
   name   = "minchuk-bucket"
   region = "fra1"
