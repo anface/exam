@@ -1,6 +1,6 @@
 ---
 - name: "Task 2 & 3: Infrastructure Setup and App Deployment"
-  hosts: nodes
+  hosts: all
   become: yes
   tasks:
     - name: "1. Перевірка вільного місця (Pre-check)"
