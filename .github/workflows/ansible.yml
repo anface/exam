@@ -22,14 +22,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: "3. Build and Push Dev Image (Branch develop)"
+      - name: "3. Build and Push Dev Image"
         run: |
           git clone -b develop https://github.com/YulianSalo/devops-exam-pt2.git dev_app
           cd dev_app
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/exam-app:develop .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/exam-app:develop
 
-      - name: "4. Build and Push Release Image (Tag 1.0.0)"
+      - name: "4. Build and Push Release Image"
         run: |
           git clone -b 1.0.0 https://github.com/YulianSalo/devops-exam-pt2.git release_app
           cd release_app
@@ -41,7 +41,9 @@ jobs:
         with:
           playbook: setup.yml
           directory: task2
-          inventory: inventory.ini
+          inventory: |
+            [nodes]
+            minchuk-node ansible_host=134.122.78.232 ansible_user=ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           options: |
             --extra-vars "ansible_ssh_extra_args='-o StrictHostKeyChecking=no'"
