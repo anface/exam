@@ -39,11 +39,18 @@
     - name: "6.5 Очищення Minikube перед запуском"
       command: minikube delete
       ignore_errors: yes
+      
+    - name: "6.6 Hard Cleanup Docker & Minikube"
+      shell: |
+        minikube delete --all --purge
+        docker stop $(docker ps -aq) || true
+        docker rm $(docker ps -aq) || true
+        docker system prune -af
+      ignore_errors: yes
 
-    - name: "7. Запуск Minikube"
-      command: minikube start --driver=docker --memory=2048 --force
+    - name: "7. Запуск Minikube (Light version)"
+      command: minikube start --driver=none --force
       register: minikube_start
-      changed_when: "'Done!' in minikube_start.stdout"
 
     - name: "8. Запуск kubectl proxy"
       shell: "nohup kubectl proxy --port=8001 --address='0.0.0.0' --accept-hosts='.*' > /dev/null 2>&1 &"
