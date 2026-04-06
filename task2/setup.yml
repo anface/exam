@@ -1,38 +1,49 @@
 ---
-- name: "Task 2 & 3: Infrastructure Setup and App Deployment"
+- name: "Final Infrastructure and App Deployment"
   hosts: all
   become: no
   tasks:
-    - name: "1. Системні пакети"
+    - name: "1. Install Base Packages"
       apt:
         update_cache: yes
-        name: [apt-transport-https, ca-certificates, curl, software-properties-common, git, wget]
+        name: [curl, wget, git]
 
-    - name: "2. Встановлення K3s (Легкий Kubernetes)"
+    - name: "2. Install K3s (Lightweight Kubernetes)"
       shell: "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -"
       args:
         creates: /usr/local/bin/k3s
 
-    - name: "3. Встановлення Helm"
+    - name: "3. Install Helm"
       shell: "curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
       args:
         creates: /usr/local/bin/helm
 
-    - name: "4. Створення посилань для сумісності"
+    - name: "4. Setup Kubeconfig"
       shell: |
         mkdir -p /root/.kube
         cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
       ignore_errors: yes
 
-    - name: "5. Деплой додатків через Helm"
+    - name: "5. Deploy Applications"
       shell: |
-        helm upgrade --install dev-app ../task3 \
+        # Ми копіюємо чарт прямо на сервер, щоб не було проблем зі шляхами
+        rm -rf /tmp/task3
+      ignore_errors: yes
+
+    - name: "6. Copy Helm Chart to Server"
+      copy:
+        src: "../task3"
+        dest: "/tmp/task3"
+
+    - name: "7. Run Helm Upgrades"
+      shell: |
+        helm upgrade --install dev-app /tmp/task3 \
           --set image.tag=develop \
           --set service.type=NodePort \
           --set service.nodePort=30002 \
           --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
           
-        helm upgrade --install release-app ../task3 \
+        helm upgrade --install release-app /tmp/task3 \
           --set image.tag=1.0.0 \
           --set service.type=NodePort \
           --set service.nodePort=30003 \
@@ -40,12 +51,12 @@
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "6. Перевірка"
-      command: kubectl get pods
-      register: pods_status
+    - name: "8. Verify Deployment"
+      shell: "kubectl get pods && kubectl get svc"
+      register: final_status
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "7. Результат"
+    - name: "9. Show Results"
       debug:
-        msg: "{{ pods_status.stdout }}"
+        msg: "{{ final_status.stdout }}"
