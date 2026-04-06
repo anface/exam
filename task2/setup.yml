@@ -3,48 +3,55 @@
   hosts: all
   become: no
   tasks:
-    - name: "1. Оновлення системних пакетів"
+    - name: "1. Системні пакети"
       apt:
         update_cache: yes
-        name: [apt-transport-https, ca-certificates, curl, software-properties-common, conntrack, socat]
+        name: [apt-transport-https, ca-certificates, curl, software-properties-common, conntrack, socat, git]
 
     - name: "2. Встановлення Docker"
       apt:
         name: docker.io
         state: present
 
-    - name: "3. Встановлення kubectl, crictl та Minikube"
+    - name: "3. Встановлення cri-dockerd (Фікс для драйвера none)"
       shell: |
-        # kubectl
+        wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.15/cri-dockerd-0.3.15.amd64.tgz
+        tar xzwf cri-dockerd-0.3.15.amd64.tgz
+        install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd
+        wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
+        wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+        sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,g' cri-docker.service
+        install -o root -g root -m 0644 cri-docker.service /etc/systemd/system/
+        install -o root -g root -m 0644 cri-docker.socket /etc/systemd/system/
+        systemctl daemon-reload
+        systemctl enable --now cri-docker.socket
+
+    - name: "4. Встановлення kubectl та Minikube"
+      shell: |
         curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
         install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-        # crictl (необхідний для драйвера none)
-        VERSION="v1.28.0"
-        curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz --output crictl.tar.gz
-        tar zxvf crictl.tar.gz -C /usr/local/bin
-        # minikube
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
         install minikube-linux-amd64 /usr/local/bin/minikube
 
-    - name: "4. Встановлення Helm"
+    - name: "5. Встановлення Helm"
       shell: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
       args:
         creates: /usr/local/bin/helm
 
-    - name: "5. Очищення перед запуском"
+    - name: "6. Очищення Minikube"
       command: minikube delete --all --purge
       ignore_errors: yes
 
-    - name: "6. Запуск Minikube (Driver None)"
-      command: minikube start --driver=none --force
+    - name: "7. Запуск Minikube (Driver None)"
+      command: minikube start --driver=none --force --memory=2048
       register: minikube_start
 
-    - name: "7. Запуск kubectl proxy"
+    - name: "8. Запуск kubectl proxy"
       shell: "nohup kubectl proxy --port=8001 --address='0.0.0.0' --accept-hosts='.*' > /dev/null 2>&1 &"
       async: 10
       poll: 0
 
-    - name: "8. Деплой DEV (Port 8002)"
+    - name: "9. Деплой DEV (Port 8002)"
       command: >
         helm upgrade --install dev-app ../task3 
         --set image.tag=develop 
@@ -53,7 +60,7 @@
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "9. Деплой RELEASE (Port 8003)"
+    - name: "10. Деплой RELEASE (Port 8003)"
       command: >
         helm upgrade --install release-app ../task3 
         --set image.tag=1.0.0 
@@ -62,12 +69,12 @@
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "10. Перевірка результату"
+    - name: "11. Статус подів"
       command: kubectl get pods
       register: pods_status
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "11. Вивід статусів"
+    - name: "12. Фінальний вивід"
       debug:
         msg: "{{ pods_status.stdout }}"
