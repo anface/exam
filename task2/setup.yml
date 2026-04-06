@@ -35,6 +35,10 @@
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
       args:
         creates: /usr/local/bin/helm
+        
+    - name: "6.5 Очищення Minikube перед запуском"
+      command: minikube delete
+      ignore_errors: yes
 
     - name: "7. Запуск Minikube"
       command: minikube start --driver=docker --memory=2048 --force
