@@ -46,6 +46,6 @@ jobs:
             minchuk-node ansible_host=134.122.78.232 ansible_user=root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           options: |
-            --extra-vars "ansible_ssh_extra_args='-o StrictHostKeyChecking=no'"
+            --extra-vars "ansible_ssh_extra_args='-o StrictHostKeyChecking=no' chart_path=${{ github.workspace }}/task3"
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
