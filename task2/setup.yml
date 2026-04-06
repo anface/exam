@@ -1,0 +1,41 @@
+---
+- name: "Task 2: Install K8s Components"
+  hosts: nodes
+  become: yes
+  tasks:
+    - name: "1. Перевірка вільного місця (Вимога успішності)"
+      shell: df -h / | tail -1 | awk '{print $4}' | sed 's/G//'
+      register: disk_free
+      failed_when: disk_free.stdout | float < 2.0
+
+    - name: "2. Оновлення системи"
+      apt:
+        update_cache: yes
+        name: [apt-transport-https, ca-certificates, curl, software-properties-common, conntrack]
+
+    - name: "3. Встановлення Docker"
+      apt:
+        name: docker.io
+        state: present
+
+    - name: "4. Встановлення kubectl"
+      get_url:
+        url: "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    - name: "5. Встановлення Minikube"
+      get_url:
+        url: "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64"
+        dest: /usr/local/bin/minikube
+        mode: '0755'
+
+    - name: "6. Встановлення Helm"
+      shell: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: "7. Запуск Minikube (driver=docker)"
+      become: no
+      command: minikube start --driver=docker
