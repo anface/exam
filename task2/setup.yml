@@ -3,7 +3,7 @@
   hosts: all
   become: yes
   tasks:
-    - name: "1. Перевірка вільного місця (Pre-check)"
+    - name: "1. Перевірка вільного місця"
       shell: df -h / | tail -1 | awk '{print $4}' | sed 's/G//'
       register: disk_free
       failed_when: disk_free.stdout | float < 2.0
@@ -42,20 +42,20 @@
       register: minikube_start
       changed_when: "'Done!' in minikube_start.stdout"
 
-    - name: "8. Запуск kubectl proxy (Requirement: Proxy access)"
+    - name: "8. Запуск kubectl proxy"
       become: no
       shell: "nohup kubectl proxy --port=8001 --address='0.0.0.0' --accept-hosts='.*' > /dev/null 2>&1 &"
       async: 10
       poll: 0
 
-    - name: "9. Очищення старих релізів Helm (якщо були)"
+    - name: "9. Очищення старих релізів"
       become: no
       command: helm uninstall dev-app release-app
       ignore_errors: yes
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
 
-    - name: "10. Деплой DEV середовища (Port 8002)"
+    - name: "10. Деплой DEV (Port 8002)"
       become: no
       command: >
         helm upgrade --install dev-app ../task3 
@@ -65,7 +65,7 @@
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
 
-    - name: "11. Деплой RELEASE середовища (Port 8003)"
+    - name: "11. Деплой RELEASE (Port 8003)"
       become: no
       command: >
         helm upgrade --install release-app ../task3 
