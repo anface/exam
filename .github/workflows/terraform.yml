@@ -11,13 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      # Ключі для Backend (S3)
+      # Ключі для доступу до бакета (Backend S3)
       AWS_ACCESS_KEY_ID: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
-      # Змінні для Terraform Provider
+      
+      # Змінні для провайдера DigitalOcean
       TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
       TF_VAR_spaces_access_id: ${{ secrets.DIGITALOCEAN_ACCESS_KEY }}
       TF_VAR_spaces_secret_key: ${{ secrets.DIGITALOCEAN_SECRET_KEY }}
+      
+      # ОСЬ ЦЕЙ РЯДОК ПРИБЕРЕ ЗАВИСАННЯ НА 9 ХВИЛИН:
+      TF_VAR_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
 
     steps:
       - name: "Checkout Code"
