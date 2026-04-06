@@ -8,7 +8,7 @@
         update_cache: yes
         name: [curl, wget, git]
 
-    - name: "2. Install K3s (Lightweight Kubernetes)"
+    - name: "2. Install K3s"
       shell: "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -"
       args:
         creates: /usr/local/bin/k3s
@@ -24,26 +24,31 @@
         cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
       ignore_errors: yes
 
-    - name: "5. Deploy Applications"
-      shell: |
-        # Ми копіюємо чарт прямо на сервер, щоб не було проблем зі шляхами
-        rm -rf /tmp/task3
-      ignore_errors: yes
+    - name: "5. Cleanup and Create Temp Dir"
+      shell: "rm -rf /tmp/app_chart && mkdir -p /tmp/app_chart"
 
-    - name: "6. Copy Helm Chart to Server"
+    - name: "6. Copy Helm Chart Content"
       copy:
-        src: "../task3"
-        dest: "/tmp/task3"
+        src: "../task3/"  # ВАЖЛИВО: слеш копіює вміст папки task3
+        dest: "/tmp/app_chart/"
 
-    - name: "7. Run Helm Upgrades"
+    - name: "7. Verify Chart.yaml existence"
+      shell: "ls -la /tmp/app_chart/"
+      register: ls_output
+
+    - name: "8. Show LS output"
+      debug:
+        msg: "{{ ls_output.stdout }}"
+
+    - name: "9. Run Helm Upgrades"
       shell: |
-        helm upgrade --install dev-app /tmp/task3 \
+        helm upgrade --install dev-app /tmp/app_chart \
           --set image.tag=develop \
           --set service.type=NodePort \
           --set service.nodePort=30002 \
           --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
           
-        helm upgrade --install release-app /tmp/task3 \
+        helm upgrade --install release-app /tmp/app_chart \
           --set image.tag=1.0.0 \
           --set service.type=NodePort \
           --set service.nodePort=30003 \
@@ -51,12 +56,12 @@
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "8. Verify Deployment"
+    - name: "10. Verify Deployment"
       shell: "kubectl get pods && kubectl get svc"
       register: final_status
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "9. Show Results"
+    - name: "11. Final Status"
       debug:
         msg: "{{ final_status.stdout }}"
