@@ -1,8 +1,12 @@
 replicaCount: 1
+
 image:
-  repository: nginx
-  pullPolicy: IfNotPresent
-  tag: "latest"
+  repository: anface/exam
+  pullPolicy: Always
+  tag: "develop"
+
 service:
-  type: ClusterIP
+  type: NodePort
   port: 80
+  targetPort: 8080
+  nodePort: 8002 # Дефолтний порт для dev
