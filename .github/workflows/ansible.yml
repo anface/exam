@@ -1,6 +1,9 @@
-name: "Ansible Deployment (Task 2)"
+name: "Ansible Deployment"
 
 on:
+  push:
+    branches:
+      - main
   workflow_run:
     workflows: ["Terraform Infrastructure"]
     types:
@@ -9,17 +12,15 @@ on:
 jobs:
   ansible:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: "Checkout Code"
-        uses: actions/checkout@v4
-
-      - name: "Setup SSH Key"
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > task2/id_rsa
-          chmod 600 task2/id_rsa
+      - uses: actions/checkout@v4
 
       - name: "Run Ansible Playbook"
-        run: |
-          cd task2
-          ansible-playbook -i inventory.ini setup.yml
+        uses: dawidd6/action-ansible-playbook@v2
+        with:
+          playbook: setup.yml
+          directory: task2
+          inventory: inventory.ini
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          options: |
+            --extra-vars "ansible_ssh_extra_args='-o StrictHostKeyChecking=no'"
