@@ -6,84 +6,46 @@
     - name: "1. Системні пакети"
       apt:
         update_cache: yes
-        name: [apt-transport-https, ca-certificates, curl, software-properties-common, conntrack, socat, git, wget]
+        name: [apt-transport-https, ca-certificates, curl, software-properties-common, git, wget]
 
-    - name: "2. Встановлення Docker"
-      apt:
-        name: docker.io
-        state: present
-
-    - name: "3. Швидке встановлення cri-dockerd"
-      shell: |
-        if [ ! -f /usr/local/bin/cri-dockerd ]; then
-          wget -q https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.15/cri-dockerd-0.3.15.amd64.tgz
-          tar xzf cri-dockerd-0.3.15.amd64.tgz
-          install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd
-          rm -rf cri-dockerd*
-        fi
-        
-        # Створюємо сервіси вручну, щоб не качати їх окремо
-        cat <<EOF > /etc/systemd/system/cri-docker.service
-        [Unit]
-        Description=CRI Interface for Docker Application Container Engine
-        After=network-online.target firewalld.service docker.service
-        Wants=network-online.target
-        [Service]
-        Type=notify
-        ExecStart=/usr/local/bin/cri-dockerd --container-runtime-endpoint fd://
-        ExecReload=/bin/kill -s HUP \$MAINPID
-        TimeoutSec=0
-        RestartSec=2
-        Restart=always
-        [Install]
-        WantedBy=multi-user.target
-        EOF
-
-        cat <<EOF > /etc/systemd/system/cri-docker.socket
-        [Unit]
-        Description=CRI Interface for Docker Application Container Engine Socket
-        [Socket]
-        ListenStream=%t/cri-dockerd.sock
-        [Install]
-        WantedBy=sockets.target
-        EOF
-
-        systemctl daemon-reload
-        systemctl enable --now cri-docker.socket
-        systemctl enable --now cri-docker.service
+    - name: "2. Встановлення K3s (Легкий Kubernetes)"
+      shell: "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -"
       args:
-        executable: /bin/bash
+        creates: /usr/local/bin/k3s
 
-    - name: "4. Встановлення kubectl та Minikube"
-      shell: |
-        curl -sLO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
-        install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-        curl -sLO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-        install minikube-linux-amd64 /usr/local/bin/minikube
-
-    - name: "5. Встановлення Helm"
+    - name: "3. Встановлення Helm"
       shell: "curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+      args:
+        creates: /usr/local/bin/helm
 
-    - name: "6. Очищення та Запуск Minikube"
+    - name: "4. Створення посилань для сумісності"
       shell: |
-        minikube delete --all --purge || true
-        minikube start --driver=none --force --memory=1500 --cpus=1
+        mkdir -p /root/.kube
+        cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
+      ignore_errors: yes
+
+    - name: "5. Деплой додатків через Helm"
+      shell: |
+        helm upgrade --install dev-app ../task3 \
+          --set image.tag=develop \
+          --set service.type=NodePort \
+          --set service.nodePort=30002 \
+          --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
+          
+        helm upgrade --install release-app ../task3 \
+          --set image.tag=1.0.0 \
+          --set service.type=NodePort \
+          --set service.nodePort=30003 \
+          --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "7. Деплой додатків"
-      shell: |
-        helm upgrade --install dev-app ../task3 --set image.tag=develop --set service.nodePort=8002 --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
-        helm upgrade --install release-app ../task3 --set image.tag=1.0.0 --set service.nodePort=8003 --set image.repository={{ lookup('env', 'DOCKERHUB_USERNAME') }}/exam-app
-      environment:
-        KUBECONFIG: /root/.kube/config
-
-    - name: "8. Перевірка"
+    - name: "6. Перевірка"
       command: kubectl get pods
       register: pods_status
       environment:
         KUBECONFIG: /root/.kube/config
 
-    - name: "9. Результат"
+    - name: "7. Результат"
       debug:
         msg: "{{ pods_status.stdout }}"
