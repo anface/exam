@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "my-web-app.fullname" . }}
+  name: {{ .Release.Name }}-deployment
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: my-web-app
+      app: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: my-web-app
+        app: {{ .Release.Name }}
     spec:
       containers:
-        - name: web
+        - name: exam-container
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: 80
+            - containerPort: 8080
