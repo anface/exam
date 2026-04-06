@@ -1,14 +1,14 @@
 ---
-- name: "Task 2: Install K8s Components"
+- name: "Task 2: Install K8s Components and Setup Proxy"
   hosts: nodes
   become: yes
   tasks:
-    - name: "1. Перевірка вільного місця (Вимога успішності)"
+    - name: "1. Перевірка вільного місця (Pre-check)"
       shell: df -h / | tail -1 | awk '{print $4}' | sed 's/G//'
       register: disk_free
       failed_when: disk_free.stdout | float < 2.0
 
-    - name: "2. Оновлення системи"
+    - name: "2. Оновлення системних пакетів"
       apt:
         update_cache: yes
         name: [apt-transport-https, ca-certificates, curl, software-properties-common, conntrack]
@@ -36,6 +36,23 @@
       args:
         creates: /usr/local/bin/helm
 
-    - name: "7. Запуск Minikube (driver=docker)"
+    - name: "7. Запуск Minikube"
       become: no
       command: minikube start --driver=docker
+      register: minikube_start
+      changed_when: "'Done!' in minikube_start.stdout"
+
+    - name: "8. Запуск kubectl proxy у фоновому режимі"
+      become: no
+      shell: "nohup kubectl proxy --port=8001 --address='0.0.0.0' --accept-hosts='.*' > /dev/null 2>&1 &"
+      async: 10
+      poll: 0
+
+    - name: "9. Перевірка доступності Minikube API через проксі"
+      uri:
+        url: http://127.0.0.1:8001/version
+        status_code: 200
+      register: proxy_check
+      retries: 5
+      delay: 5
+      until: proxy_check.status == 200
